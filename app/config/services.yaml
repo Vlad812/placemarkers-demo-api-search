@@ -31,5 +31,8 @@ services:
     App\Application\Query\GetPlacemarker\GetPlacemarkerFetcherInterface:
         class: App\Infrastructure\Persistence\Doctrine\Fetcher\DoctrineGetPlacemarkerFetcher
 
+    App\Application\Query\GetUserTags\GetUserTagsFetcherInterface:
+        class: App\Infrastructure\Persistence\Doctrine\Fetcher\DoctrineGetUserTagsFetcher
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

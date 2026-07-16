@@ -24,11 +24,12 @@ final readonly class DoctrineGetUserTagsFetcher implements GetUserTagsFetcherInt
         $sql = <<<SQL
             SELECT
                 id,
+                type_id,
                 name,
                 description
             FROM tags
             WHERE user_uuid = :user_uuid
-            ORDER BY created_at DESC
+            ORDER BY type_id ASC, created_at DESC
         SQL;
 
         $stmt = $this->connection->prepare($sql);

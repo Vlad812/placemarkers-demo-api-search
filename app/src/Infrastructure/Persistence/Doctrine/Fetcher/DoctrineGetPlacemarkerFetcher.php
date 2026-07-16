@@ -30,12 +30,10 @@ final readonly class DoctrineGetPlacemarkerFetcher implements GetPlacemarkerFetc
                 p.type_id,
                 p.description,
                 p.created_at,
-                COALESCE(json_agg(pt.tag_id) FILTER (WHERE pt.tag_id IS NOT NULL), '[]') as tags
+                COALESCE(p.tags_jsonb, '[]'::jsonb) as tags
             FROM placemarkers p
-            LEFT JOIN placemarker_tags pt ON p.id = pt.placemarker_id
             WHERE p.id = :id
               AND p.user_uuid = :user_uuid
-            GROUP BY p.id
         SQL;
 
         $row = $this->connection->executeQuery($sql, [
@@ -53,7 +51,7 @@ final readonly class DoctrineGetPlacemarkerFetcher implements GetPlacemarkerFetc
             'lat' => (float) $row['lat'],
             'lon' => (float) $row['lon'],
             'type_id' => $row['type_id'] ?? 'default',
-            'tags' => json_decode($row['tags'], true),
+            'tags' => TagsDecoder::decode($row['tags'] ?? null),
             'description' => $row['description'],
             'created_at' => (string) $row['created_at'],
         ];

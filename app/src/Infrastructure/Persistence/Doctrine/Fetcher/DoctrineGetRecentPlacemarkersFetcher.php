@@ -29,11 +29,9 @@ final readonly class DoctrineGetRecentPlacemarkersFetcher implements GetRecentPl
                 p.lon,
                 p.type_id,
                 p.description,
-                COALESCE(json_agg(pt.tag_id) FILTER (WHERE pt.tag_id IS NOT NULL), '[]') as tags
+                COALESCE(p.tags_jsonb, '[]'::jsonb) as tags
             FROM placemarkers p
-            LEFT JOIN placemarker_tags pt ON p.id = pt.placemarker_id
             WHERE p.user_uuid = :user_uuid
-            GROUP BY p.id
             ORDER BY p.created_at DESC
         SQL;
 
@@ -52,7 +50,7 @@ final readonly class DoctrineGetRecentPlacemarkersFetcher implements GetRecentPl
             'lat' => (float) $row['lat'],
             'lon' => (float) $row['lon'],
             'type_id' => $row['type_id'] ?? 'default',
-            'tags' => json_decode($row['tags'], true),
+            'tags' => TagsDecoder::decode($row['tags'] ?? null),
             'description' => $row['description'],
         ], $result);
     }

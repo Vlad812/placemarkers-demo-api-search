@@ -11,14 +11,12 @@ use Webmozart\Assert\Assert;
 final readonly class SearchPlacemarkersQuery
 {
     /**
-     * @param list<string> $tags
-     * @param list<string> $types
+     * @param list<array{type_id: string, tags: list<string>}> $filters
      */
     public function __construct(
         public SearchArea $area,
         public string $userUuid,
-        public array $tags = [],
-        public array $types = [],
+        public array $filters = [],
     ) {
     }
 
@@ -36,43 +34,58 @@ final readonly class SearchPlacemarkersQuery
         Assert::numeric($requestData['lon'], 'Parameter lon must be numeric');
         Assert::numeric($requestData['radius'], 'Parameter radius must be numeric');
 
-        $tags = self::normalizeStringList($requestData['tags'] ?? []);
-        $types = self::normalizeStringList($requestData['types'] ?? []);
-
-        if ($tags !== []) {
-            Assert::allString($tags, 'Parameter tags must contain only strings');
-            Assert::allNotEmpty($tags, 'Parameter tags must not contain empty values');
-        }
-
-        if ($types !== []) {
-            Assert::allString($types, 'Parameter types must contain only strings');
-            Assert::allNotEmpty($types, 'Parameter types must not contain empty values');
-        }
-
         return new self(
             SearchArea::create(
                 Coordinates::fromFloats((float) $requestData['lat'], (float) $requestData['lon']),
                 (float) $requestData['radius']
             ),
             $userUuid,
-            array_values($tags),
-            array_values($types),
+            self::normalizeFilters($requestData['filters'] ?? []),
         );
     }
 
     /**
-     * @return list<string>
+     * Example $value:
+     * [
+     *     ['type_id' => 'parking', 'tags' => ['a0f89579-cd7f-4d81-9aee-0512f756957e']],
+     *     ['type_id' => 'marketplace', 'tags' => []],
+     * ]
+     * or [] when no filters are selected.
+     *
+     * @param list<array{type_id: string, tags: list<string>}> $value
+     * @return list<array{type_id: string, tags: list<string>}>
      */
-    private static function normalizeStringList(mixed $value): array
+    private static function normalizeFilters(mixed $value): array
     {
-        if (!is_array($value)) {
-            if (is_string($value) && $value !== '') {
-                return [$value];
+        if (is_string($value) && $value !== '') {
+            $decoded = json_decode($value, true);
+            if (!is_array($decoded)) {
+                return [];
             }
+            $value = $decoded;
+        }
 
+        if (!is_array($value)) {
             return [];
         }
 
-        return array_values(array_filter($value, static fn (mixed $item): bool => is_string($item) && $item !== ''));
+        $filters = [];
+        foreach ($value as $index => $item) {
+            Assert::isArray($item, sprintf('Filter at index %d must be an object.', $index));
+
+            Assert::keyExists($item, 'type_id', sprintf('Filter at index %d is missing type_id.', $index));
+            Assert::stringNotEmpty($item['type_id'], sprintf('Filter at index %d type_id must not be empty.', $index));
+
+            $tags = $item['tags'] ?? [];
+            Assert::isArray($tags, sprintf('Filter at index %d tags must be an array.', $index));
+            Assert::allStringNotEmpty($tags, sprintf('Filter at index %d tags must be non-empty strings.', $index));
+
+            $filters[] = [
+                'type_id' => $item['type_id'],
+                'tags' => array_values($tags),
+            ];
+        }
+
+        return $filters;
     }
 }
