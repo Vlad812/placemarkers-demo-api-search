@@ -7,7 +7,7 @@ namespace App\Application\Query\GetUserTags;
 interface GetUserTagsFetcherInterface
 {
     /**
-     * @return list<array{id: string, name: string, description: ?string}>
+     * @return list<array{id: string, type_id: string, name: string, description: ?string}>
      */
     public function fetch(GetUserTagsQuery $query): array;
 }
